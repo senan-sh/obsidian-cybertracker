@@ -1,8 +1,410 @@
-/*
+.schedule-calendar-view {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	height: 100%;
+	padding: 1rem;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.schedule-calendar-view .calendar-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
 
-If your plugin does not need CSS, delete this file.
+.schedule-calendar-view .calendar-header h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	font-weight: 700;
+}
 
-*/
+.schedule-calendar-view .calendar-header-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.schedule-calendar-view button,
+.schedule-calendar-view select {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	border-radius: 8px;
+	padding: 6px 10px;
+	font-size: 0.95rem;
+	cursor: pointer;
+}
+
+.schedule-calendar-view button:hover,
+.schedule-calendar-view select:hover {
+	border-color: var(--interactive-accent);
+	color: var(--text-normal);
+}
+
+.schedule-calendar-view select {
+	padding-right: 1.5rem;
+}
+
+.schedule-calendar-view .calendar-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.schedule-calendar-view .calendar-weekday-row {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.4rem;
+	padding: 0 0.1rem;
+	color: var(--text-muted);
+	font-weight: 700;
+	text-transform: uppercase;
+	font-size: 0.85rem;
+}
+
+.schedule-calendar-view .calendar-weekday {
+	text-align: center;
+}
+
+.schedule-calendar-view .calendar-month-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.schedule-calendar-view .calendar-cell {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	min-height: 120px;
+	padding: 0.6rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.schedule-calendar-view .calendar-cell-muted {
+	opacity: 0.6;
+}
+
+.schedule-calendar-view .calendar-cell-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.25rem;
+	font-weight: 700;
+}
+
+.schedule-calendar-view .calendar-cell-header button {
+	padding: 4px 6px;
+	width: 30px;
+}
+
+.schedule-calendar-view .calendar-cell-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.schedule-calendar-view .calendar-cell-item {
+	width: 18px;
+	height: 18px;
+	background: var(--background-modifier-form-field);
+	border-radius: 3px;
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+	position: relative;
+}
+
+.schedule-calendar-view .calendar-cell-item:hover {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+.schedule-calendar-view .calendar-tooltip {
+	position: absolute;
+	bottom: calc(100% + 10px);
+	left: 50%;
+	transform: translate(-50%, -6px) scale(0.98);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 10px 12px;
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+	white-space: pre-line;
+	width: max-content;
+	max-width: min(380px, 80vw);
+	z-index: 5;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 140ms ease, transform 140ms ease;
+	line-height: 1.35;
+}
+
+.schedule-calendar-view .calendar-cell-item:hover .calendar-tooltip {
+	opacity: 1;
+	transform: translate(-50%, -12px) scale(1);
+}
+
+.schedule-calendar-view .calendar-week-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.schedule-calendar-view .calendar-week-day {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	min-height: 260px;
+}
+
+.schedule-calendar-view .calendar-week-day-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.4rem;
+	padding: 0.6rem 0.75rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-weight: 700;
+}
+
+.schedule-calendar-view .calendar-week-day-header button {
+	padding: 4px 6px;
+}
+
+.schedule-calendar-view .calendar-week-timeline {
+	padding: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+}
+
+.schedule-calendar-view .calendar-week-item {
+	border-radius: 8px;
+	background: var(--background-modifier-form-field);
+	border: 1px solid transparent;
+	padding: 0.45rem 0.55rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	cursor: pointer;
+	transition: border-color 120ms ease;
+	color: #fff;
+	position: relative;
+	min-height: 32px;
+}
+
+.schedule-calendar-view .calendar-week-item:hover {
+	border-color: var(--interactive-accent);
+}
+
+.schedule-calendar-view .calendar-week-item-time {
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 0.9rem;
+}
+
+.schedule-calendar-view .calendar-week-item-title {
+	font-weight: 700;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.schedule-calendar-view .calendar-week-item .calendar-tooltip {
+	display: block;
+	position: absolute;
+	bottom: calc(100% + 10px);
+	left: 50%;
+	transform: translate(-50%, -6px) scale(0.98);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 10px 12px;
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+	white-space: pre-line;
+	width: max-content;
+	max-width: min(380px, 80vw);
+	z-index: 5;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 140ms ease, transform 140ms ease;
+	line-height: 1.35;
+}
+
+.schedule-calendar-view .calendar-week-item:hover .calendar-tooltip {
+	opacity: 1;
+	transform: translate(-50%, -12px) scale(1);
+}
+
+.time-tracker-view {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	height: 100%;
+	padding: 1rem;
+}
+
+.time-tracker-view .timer-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-bottom: 0.4rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.time-tracker-view .timer-header h2 {
+	margin: 0;
+	font-size: 1.05rem;
+}
+
+.time-tracker-view button {
+	background: var(--interactive-accent);
+	border: none;
+	color: var(--text-on-accent, #fff);
+	border-radius: 8px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+
+.time-tracker-view button:hover {
+	filter: brightness(1.05);
+}
+
+.time-tracker-view .timer-session-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.time-tracker-view .timer-session {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.6rem 0.75rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+}
+
+.time-tracker-view .timer-session--running {
+	background: #00e676;
+	border-color: #00c866;
+	color: #111111;
+}
+
+.time-tracker-view .timer-session--paused {
+	background: #fdd835;
+	border-color: #e6c200;
+	color: #111111;
+}
+
+.time-tracker-view .timer-session--running .timer-session-title,
+.time-tracker-view .timer-session--running .timer-session-elapsed,
+.time-tracker-view .timer-session--paused .timer-session-title,
+.time-tracker-view .timer-session--paused .timer-session-elapsed {
+	color: #111111;
+}
+
+.time-tracker-view .timer-session--running button,
+.time-tracker-view .timer-session--paused button {
+	background: rgba(17, 17, 17, 0.08);
+	border: 1px solid rgba(17, 17, 17, 0.25);
+	color: #111111;
+}
+
+.time-tracker-view .timer-session--running button:hover,
+.time-tracker-view .timer-session--paused button:hover {
+	filter: none;
+	background: rgba(17, 17, 17, 0.14);
+}
+
+.time-tracker-view .timer-session-title {
+	font-weight: 700;
+}
+
+.time-tracker-view .timer-session-elapsed {
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+}
+
+.time-tracker-view .timer-session--running .timer-session-elapsed {
+	animation: timer-glow 1.2s ease-in-out infinite alternate;
+}
+
+.time-tracker-view .timer-session-actions {
+	display: flex;
+	gap: 0.35rem;
+	flex-wrap: wrap;
+}
+
+.time-tracker-view .timer-action-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border-radius: 10px;
+	background: rgba(0, 0, 0, 0.04);
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	color: #111111;
+}
+
+.time-tracker-view .timer-action-btn:hover {
+	background: rgba(0, 0, 0, 0.08);
+}
+
+.time-tracker-view .timer-action-btn svg {
+	width: 18px;
+	height: 18px;
+}
+
+.add-schedule-modal-footer {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.add-schedule-modal-footer .button-danger {
+	background: #e03131;
+	color: #fff;
+	border: 1px solid #b02525;
+	margin-left: auto;
+}
+
+.add-schedule-modal-footer .button-danger:hover {
+	filter: brightness(1.05);
+}
+
+@keyframes timer-glow {
+	from {
+		text-shadow: 0 0 6px rgba(0, 230, 118, 0.4);
+	}
+
+	to {
+		text-shadow: 0 0 14px rgba(0, 230, 118, 0.85);
+	}
+}
+
+.start-timer-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.confirm-buttons {
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+}

@@ -45,6 +45,10 @@ export class ScheduleManager {
 		const monthEntries = this.schedulesByMonth.get(month) ?? [];
 		const filtered = monthEntries.filter((item) => item.id !== id);
 		const newEntry: ScheduleEntry = { ...entry, id };
+		const computedDuration = this.calculateDurationMs(newEntry);
+		if (computedDuration !== undefined) {
+			newEntry.durationMs = computedDuration;
+		}
 		filtered.push(newEntry);
 		this.schedulesByMonth.set(month, filtered);
 		this.idToMonth.set(id, month);
@@ -88,8 +92,12 @@ export class ScheduleManager {
 		try {
 			const raw = await this.app.vault.adapter.read(path);
 			const parsed = this.parseScheduleArray(raw);
-			this.schedulesByMonth.set(monthKey, parsed);
-			parsed.forEach((entry) => this.idToMonth.set(entry.id, monthKey));
+			const normalized = parsed.map((entry) => {
+				const durationMs = this.calculateDurationMs(entry);
+				return durationMs !== undefined ? { ...entry, durationMs } : entry;
+			});
+			this.schedulesByMonth.set(monthKey, normalized);
+			normalized.forEach((entry) => this.idToMonth.set(entry.id, monthKey));
 		} catch (err) {
 			console.error(`Failed to parse schedule file ${path}`, err);
 			this.schedulesByMonth.set(monthKey, []);
@@ -184,6 +192,35 @@ export class ScheduleManager {
 			console.error("Failed to parse schedule data", err);
 		}
 		return [];
+	}
+
+	private calculateDurationMs(entry: ScheduleEntry): number | undefined {
+		const logs = entry.logs ?? [];
+		if (logs.length) {
+			const fromLogs = logs.reduce((acc, log) => {
+				if (log.end === undefined || log.end <= log.start) return acc;
+				return acc + (log.end - log.start);
+			}, 0);
+			if (fromLogs > 0) return fromLogs;
+		}
+		const fromTimes = this.durationFromTimes(entry.startTime, entry.endTime);
+		if (fromTimes !== null && fromTimes > 0) return fromTimes;
+		return typeof entry.durationMs === "number" && entry.durationMs > 0 ? entry.durationMs : undefined;
+	}
+
+	private durationFromTimes(start?: string, end?: string): number | null {
+		if (!start || !end) return null;
+		const startSeconds = this.toSeconds(start);
+		const endSeconds = this.toSeconds(end);
+		if (startSeconds === null || endSeconds === null || endSeconds <= startSeconds) return null;
+		return (endSeconds - startSeconds) * 1000;
+	}
+
+	private toSeconds(hhmmss: string): number | null {
+		const [h, m, s] = hhmmss.split(":").map((v) => Number(v));
+		if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+		const sec = Number.isFinite(s) ? s : 0;
+		return h * 3600 + m * 60 + sec;
 	}
 
 	private getMonthKeyFromFile(path: string): string | null {

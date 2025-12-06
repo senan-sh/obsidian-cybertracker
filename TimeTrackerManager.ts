@@ -133,7 +133,6 @@ export class TimeTrackerManager {
 	private closeOpenLog(session: TimerSession) {
 		const current = session.logs[session.logs.length - 1];
 		if (current && current.end === undefined) {
-			console.log("closeOpenLog", session.id, current, Date.now());
 			current.end = Date.now();
 		}
 	}

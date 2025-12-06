@@ -232,7 +232,7 @@ export class CalendarView extends ItemView {
 	}
 
 	private getDurationLabel(item: ScheduleEntry): string | null {
-		const totalMs = item.durationMs ?? this.getDurationFromTimes(item.startTime, item.endTime);
+		const totalMs = this.getDurationMs(item);
 		if (!totalMs) return null;
 		const totalSeconds = Math.floor(totalMs / 1000);
 		const hours = Math.floor(totalSeconds / 3600);
@@ -245,18 +245,33 @@ export class CalendarView extends ItemView {
 		return parts.join(" ");
 	}
 
+	private getDurationMs(item: ScheduleEntry): number | null {
+		const logs = item.logs ?? [];
+		if (logs.length) {
+			const logTotal = logs.reduce((acc, log) => {
+				if (log.end === undefined || log.end <= log.start) return acc;
+				return acc + (log.end - log.start);
+			}, 0);
+			if (logTotal > 0) return logTotal;
+		}
+		const fromTimes = this.getDurationFromTimes(item.startTime, item.endTime);
+		if (fromTimes !== null && fromTimes > 0) return fromTimes;
+		return typeof item.durationMs === "number" && item.durationMs > 0 ? item.durationMs : null;
+	}
+
 	private getDurationFromTimes(start?: string, end?: string): number | null {
 		if (!start || !end) return null;
 		const startSeconds = this.toSeconds(start);
 		const endSeconds = this.toSeconds(end);
-		if (endSeconds <= startSeconds) return null;
+		if (startSeconds === null || endSeconds === null || endSeconds <= startSeconds) return null;
 		return (endSeconds - startSeconds) * 1000;
 	}
 
 	private toSeconds(hhmmss: string): number {
-		const [h, m, s] = hhmmss.split(":").map((v) => parseInt(v, 10));
-		if (Number.isNaN(h) || Number.isNaN(m)) return 0;
-		return h * 3600 + m * 60 + (Number.isNaN(s) ? 0 : s);
+		const [h, m, s] = hhmmss.split(":").map((v) => Number(v));
+		if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+		const sec = Number.isFinite(s) ? s : 0;
+		return h * 3600 + m * 60 + sec;
 	}
 
 	private openScheduleModal(date: string, existing?: ScheduleEntry) {

@@ -73,6 +73,7 @@ export class TimeTrackerView extends ItemView {
 			title.createSpan({ text: session.taskName });
 
 			const elapsed = row.createDiv({ cls: "timer-session-elapsed", text: this.formatElapsed(session) });
+			const logs = row.createDiv({ cls: "timer-session-logs", text: this.formatLogs(session) });
 
 			const actions = row.createDiv({ cls: "timer-session-actions" });
 			if (session.status === "running") {
@@ -133,5 +134,16 @@ export class TimeTrackerView extends ItemView {
 		setIcon(btn, iconId);
 		btn.onclick = onClick;
 		return btn;
+	}
+
+	private formatLogs(session: TimerSession): string {
+		if (!session.logs.length) return "";
+		return session.logs
+			.map((log) => `${this.formatTime(new Date(log.start))} - ${log.end ? this.formatTime(new Date(log.end)) : "…"}`)
+			.join("  •  ");
+	}
+
+	private formatTime(date: Date): string {
+		return `${this.pad(date.getHours())}:${this.pad(date.getMinutes())}`;
 	}
 }

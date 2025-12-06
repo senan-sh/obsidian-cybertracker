@@ -215,13 +215,9 @@ export class CalendarView extends ItemView {
 	}
 
 	private getTooltipText(item: ScheduleEntry): string {
-		const parts: string[] = [];
-		parts.push(item.title);
-		const timeLabel = item.startTime || item.endTime ? `${item.startTime ?? ""}${item.endTime ? ` - ${item.endTime}` : ""}` : "All day";
-		if (timeLabel) parts.push(timeLabel);
 		const duration = this.getDurationLabel(item);
-		if (duration) parts.push(`Time tracked: ${duration}`);
-		return parts.join("\n");
+		const durationLabel = duration ? `Time tracked: ${duration}` : "No time logged";
+		return `${item.title}\n${durationLabel}`;
 	}
 
 	private getColorForText(text: string): string {
@@ -236,22 +232,31 @@ export class CalendarView extends ItemView {
 	}
 
 	private getDurationLabel(item: ScheduleEntry): string | null {
-		if (!item.startTime || !item.endTime) return null;
-		const start = this.toMinutes(item.startTime);
-		const end = this.toMinutes(item.endTime);
-		if (end <= start) return null;
-		const minutes = end - start;
-		const hours = Math.floor(minutes / 60);
-		const mins = minutes % 60;
-		if (hours && mins) return `${hours}h ${mins}m`;
-		if (hours) return `${hours}h`;
-		return `${mins}m`;
+		const totalMs = item.durationMs ?? this.getDurationFromTimes(item.startTime, item.endTime);
+		if (!totalMs) return null;
+		const totalSeconds = Math.floor(totalMs / 1000);
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+		const parts = [];
+		if (hours) parts.push(`${hours}h`);
+		if (minutes) parts.push(`${minutes}m`);
+		if (!hours && !minutes) parts.push(`${seconds}s`);
+		return parts.join(" ");
 	}
 
-	private toMinutes(hhmm: string): number {
-		const [h, m] = hhmm.split(":").map((v) => parseInt(v, 10));
+	private getDurationFromTimes(start?: string, end?: string): number | null {
+		if (!start || !end) return null;
+		const startSeconds = this.toSeconds(start);
+		const endSeconds = this.toSeconds(end);
+		if (endSeconds <= startSeconds) return null;
+		return (endSeconds - startSeconds) * 1000;
+	}
+
+	private toSeconds(hhmmss: string): number {
+		const [h, m, s] = hhmmss.split(":").map((v) => parseInt(v, 10));
 		if (Number.isNaN(h) || Number.isNaN(m)) return 0;
-		return h * 60 + m;
+		return h * 3600 + m * 60 + (Number.isNaN(s) ? 0 : s);
 	}
 
 	private openScheduleModal(date: string, existing?: ScheduleEntry) {

@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-time-tracker",
-	"name": "Schedule & Time Tracker",
+	"id": "cyber-tracker",
+	"name": "CyberTracker",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Calendar scheduling with a live time-tracking sidebar for Obsidian.",
-	"author": "Community",
-	"isDesktopOnly": false
+	"author": "cyberchimera",
+	"isDesktopOnly": true
 }

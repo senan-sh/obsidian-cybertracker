@@ -13,6 +13,8 @@ export interface ScheduleEntry {
 	description?: string;
 	startTime?: string; // HH:MM
 	endTime?: string; // HH:MM
+	durationMs?: number;
+	logs?: TimerLog[];
 }
 
 export type TimerStatus = "running" | "paused" | "stopped";
@@ -20,8 +22,13 @@ export type TimerStatus = "running" | "paused" | "stopped";
 export interface TimerSession {
 	id: string;
 	taskName: string;
-	startedAt: number;
-	elapsedMs: number;
+	logs: TimerLog[];
 	status: TimerStatus;
+	startedAt?: number;
 	stoppedAt?: number;
+}
+
+export interface TimerLog {
+	start: number;
+	end?: number;
 }

@@ -72,6 +72,17 @@ export class AddScheduleModal extends Modal {
 					.onChange((value) => (this.endValue = value.trim()))
 			);
 
+		if (this.props.initial?.logs?.length) {
+			const logsSection = contentEl.createDiv({ cls: "schedule-log-list" });
+			logsSection.createEl("h3", { text: "Time logs" });
+			const list = logsSection.createEl("ul");
+			this.props.initial.logs.forEach((log, idx) => {
+				const start = this.formatLogTime(log.start);
+				const end = log.end ? this.formatLogTime(log.end) : "…";
+				list.createEl("li", { text: `Log ${idx + 1}: ${start} - ${end}` });
+			});
+		}
+
 		const footer = contentEl.createDiv({ cls: "add-schedule-modal-footer" });
 		const submitBtn = footer.createEl("button", { text: "Save" });
 		submitBtn.onclick = async () => {
@@ -101,9 +112,19 @@ export class AddScheduleModal extends Modal {
 			startTime: this.startValue || undefined,
 			endTime: this.endValue || undefined,
 			description: this.descriptionValue || undefined,
+			durationMs: this.props.initial?.durationMs,
+			logs: this.props.initial?.logs,
 		};
 		const saved = await this.manager.add({ ...entry, id: this.props.initial?.id });
 		this.props.onSubmit(saved);
 		this.close();
+	}
+
+	private formatLogTime(ms: number): string {
+		const date = new Date(ms);
+		const hours = String(date.getHours()).padStart(2, "0");
+		const minutes = String(date.getMinutes()).padStart(2, "0");
+		const seconds = String(date.getSeconds()).padStart(2, "0");
+		return `${hours}:${minutes}:${seconds}`;
 	}
 }

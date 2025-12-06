@@ -3,7 +3,7 @@
 	"name": "CyberTracker",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Calendar scheduling with a live time-tracking sidebar for Obsidian.",
+	"description": "Plan tasks on a calendar, run live timers, and log sessions automatically into your schedule.",
 	"author": "cyberchimera",
 	"isDesktopOnly": true
 }

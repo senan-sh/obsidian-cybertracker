@@ -267,7 +267,7 @@ export class CalendarView extends ItemView {
 		return (endSeconds - startSeconds) * 1000;
 	}
 
-	private toSeconds(hhmmss: string): number {
+	private toSeconds(hhmmss: string): number | null {
 		const [h, m, s] = hhmmss.split(":").map((v) => Number(v));
 		if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
 		const sec = Number.isFinite(s) ? s : 0;

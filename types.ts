@@ -26,6 +26,8 @@ export interface TimerSession {
 	status: TimerStatus;
 	startedAt?: number;
 	stoppedAt?: number;
+	/** Legacy support for older saved sessions that stored elapsed instead of logs. */
+	elapsedMs?: number;
 }
 
 export interface TimerLog {

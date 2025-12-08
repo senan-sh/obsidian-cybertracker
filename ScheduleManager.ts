@@ -79,8 +79,8 @@ export class ScheduleManager {
 	private async loadAllMonths(): Promise<void> {
 		this.schedulesByMonth.clear();
 		this.idToMonth.clear();
-		const listing = await this.app.vault.adapter.list(this.scheduleDir).catch(() => ({ files: [], folders: [] }));
-		const monthFiles = listing.files?.filter((file) => file.endsWith(".json")) ?? [];
+		const listing = await this.app.vault.adapter.list(this.scheduleDir).catch(() => ({ files: [] as string[], folders: [] as string[] }));
+		const monthFiles = (listing.files ?? []).filter((file: string) => file.endsWith(".json"));
 		for (const file of monthFiles) {
 			await this.loadMonthFile(file);
 		}

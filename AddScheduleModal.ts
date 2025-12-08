@@ -1,5 +1,5 @@
-import { App, Modal, Setting } from "obsidian";
-import { ScheduleEntry } from "./types";
+import { App, Modal, Notice, Setting } from "obsidian";
+import { ScheduleEntry, TimerLog } from "./types";
 import { ScheduleManager } from "./ScheduleManager";
 
 interface AddScheduleModalProps {
@@ -7,6 +7,11 @@ interface AddScheduleModalProps {
 	initial?: ScheduleEntry;
 	onSubmit: (entry: ScheduleEntry) => void;
 	onDelete?: (id: string) => void;
+}
+
+interface LogInput {
+	start: string;
+	end: string;
 }
 
 /**
@@ -17,6 +22,8 @@ export class AddScheduleModal extends Modal {
 	private startValue = "";
 	private endValue = "";
 	private descriptionValue = "";
+	private logInputs: LogInput[] = [];
+	private logListEl?: HTMLElement;
 
 	constructor(app: App, private manager: ScheduleManager, private props: AddScheduleModalProps) {
 		super(app);
@@ -25,6 +32,10 @@ export class AddScheduleModal extends Modal {
 			this.startValue = props.initial.startTime ?? "";
 			this.endValue = props.initial.endTime ?? "";
 			this.descriptionValue = props.initial.description ?? "";
+			this.logInputs = (props.initial.logs ?? []).map((log) => ({
+				start: this.formatLogTime(log.start),
+				end: log.end ? this.formatLogTime(log.end) : "",
+			}));
 		}
 	}
 
@@ -72,16 +83,7 @@ export class AddScheduleModal extends Modal {
 					.onChange((value) => (this.endValue = value.trim()))
 			);
 
-		if (this.props.initial?.logs?.length) {
-			const logsSection = contentEl.createDiv({ cls: "schedule-log-list" });
-			logsSection.createEl("h3", { text: "Time logs" });
-			const list = logsSection.createEl("ul");
-			this.props.initial.logs.forEach((log, idx) => {
-				const start = this.formatLogTime(log.start);
-				const end = log.end ? this.formatLogTime(log.end) : "…";
-				list.createEl("li", { text: `Log ${idx + 1}: ${start} - ${end}` });
-			});
-		}
+		this.renderLogEditor(contentEl);
 
 		const footer = contentEl.createDiv({ cls: "add-schedule-modal-footer" });
 		const submitBtn = footer.createEl("button", { text: "Save" });
@@ -106,6 +108,9 @@ export class AddScheduleModal extends Modal {
 		if (!this.titleValue) {
 			return;
 		}
+		const parsedLogs = this.parseLogInputs();
+		if (parsedLogs === null) return;
+
 		const entry: Omit<ScheduleEntry, "id"> = {
 			title: this.titleValue,
 			date: this.props.date,
@@ -113,11 +118,108 @@ export class AddScheduleModal extends Modal {
 			endTime: this.endValue || undefined,
 			description: this.descriptionValue || undefined,
 			durationMs: this.props.initial?.durationMs,
-			logs: this.props.initial?.logs,
+			logs: parsedLogs.length ? parsedLogs : undefined,
 		};
 		const saved = await this.manager.add({ ...entry, id: this.props.initial?.id });
 		this.props.onSubmit(saved);
 		this.close();
+	}
+
+	private renderLogEditor(contentEl: HTMLElement) {
+		const section = contentEl.createDiv({ cls: "schedule-log-editor" });
+		section.createEl("h3", { text: "Time logs" });
+		section.createDiv({
+			cls: "schedule-log-editor-description",
+			text: "Add or adjust tracked segments to correct the total duration.",
+		});
+
+		this.logListEl = section.createDiv({ cls: "schedule-log-editor-list" });
+		this.renderLogList();
+
+		const addBtn = section.createEl("button", { text: "Add log", cls: "schedule-log-add-btn" });
+		addBtn.onclick = () => this.addLogRow();
+	}
+
+	private renderLogList() {
+		if (!this.logListEl) return;
+		this.logListEl.empty();
+		if (!this.logInputs.length) {
+			this.logListEl.createDiv({ cls: "schedule-log-empty", text: "No logs yet. Add one to track duration manually." });
+			return;
+		}
+
+		this.logInputs.forEach((log, idx) => {
+			const setting = new Setting(this.logListEl!);
+			setting.setName(`Log ${idx + 1}`);
+			setting.addText((text) =>
+				text
+					.setPlaceholder("Start (HH:MM or HH:MM:SS)")
+					.setValue(log.start)
+					.onChange((value) => (log.start = value.trim()))
+			);
+			setting.addText((text) =>
+				text
+					.setPlaceholder("End (HH:MM or HH:MM:SS)")
+					.setValue(log.end)
+					.onChange((value) => (log.end = value.trim()))
+			);
+			setting.addExtraButton((btn) =>
+				btn
+					.setIcon("trash-2")
+					.setTooltip("Remove log")
+					.onClick(() => {
+						this.logInputs.splice(idx, 1);
+						this.renderLogList();
+					})
+			);
+		});
+	}
+
+	private addLogRow() {
+		this.logInputs.push({
+			start: "",
+			end: "",
+		});
+		this.renderLogList();
+	}
+
+	private parseLogInputs(): TimerLog[] | null {
+		const logs: TimerLog[] = [];
+		for (let i = 0; i < this.logInputs.length; i++) {
+			const log = this.logInputs[i];
+			if (!log.start && !log.end) continue;
+			if (!log.start || !log.end) {
+				new Notice(`Log ${i + 1} needs both a start and end time.`);
+				return null;
+			}
+			const start = this.toTimestamp(log.start);
+			const end = this.toTimestamp(log.end);
+			if (start === null || end === null) {
+				new Notice(`Log ${i + 1} has an invalid time. Use HH:MM or HH:MM:SS.`);
+				return null;
+			}
+			if (end <= start) {
+				new Notice(`Log ${i + 1} must end after it starts.`);
+				return null;
+			}
+			logs.push({ start, end });
+		}
+		return logs;
+	}
+
+	private toTimestamp(time: string): number | null {
+		const parts = time.split(":").map((v) => Number(v));
+		if (parts.length < 2 || parts.length > 3 || parts.some((v) => Number.isNaN(v))) {
+			return null;
+		}
+		const [hours, minutes, seconds = 0] = parts;
+		if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+			return null;
+		}
+		const [year, month, day] = this.props.date.split("-").map((v) => Number(v));
+		if (!year || !month || !day) return null;
+		const date = new Date(year, month - 1, day, hours, minutes, seconds, 0);
+		return date.getTime();
 	}
 
 	private formatLogTime(ms: number): string {

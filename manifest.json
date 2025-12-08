@@ -1,7 +1,7 @@
 {
 	"id": "cyber-tracker",
 	"name": "CyberTracker",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Plan tasks on a calendar, run live timers, and log sessions automatically into your schedule.",
 	"author": "cyberchimera",

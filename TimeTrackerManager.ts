@@ -2,6 +2,10 @@ import { App, normalizePath } from "obsidian";
 import { ScheduleManager } from "./ScheduleManager";
 import { TimerLog, TimerSession } from "./types";
 
+export type SessionUpdateResult =
+	| { ok: true }
+	| { ok: false; reason: "not-found" | "no-logs" | "after-end" | "in-future" | "invalid-name" };
+
 /**
  * Stores timer sessions, handles start/pause/resume/stop, and persists to disk.
  */
@@ -37,11 +41,14 @@ export class TimeTrackerManager {
 		return this.sessions.filter((s) => s.status !== "stopped");
 	}
 
-	async start(taskName: string): Promise<TimerSession> {
+	async start(taskName: string, description?: string): Promise<TimerSession> {
 		const now = Date.now();
+		const trimmedName = taskName.trim();
+		const trimmedDescription = description?.trim() || undefined;
 		const session: TimerSession = {
 			id: this.createId(),
-			taskName,
+			taskName: trimmedName,
+			description: trimmedDescription,
 			status: "running",
 			logs: [{ start: now }],
 			startedAt: now,
@@ -88,6 +95,40 @@ export class TimeTrackerManager {
 		return this.getTotalElapsed(session);
 	}
 
+	async updateSession(
+		id: string,
+		updates: { taskName?: string; description?: string; startTime?: number }
+	): Promise<SessionUpdateResult> {
+		const session = this.sessions.find((s) => s.id === id);
+		if (!session) return { ok: false, reason: "not-found" };
+
+		if (updates.taskName !== undefined) {
+			const name = updates.taskName.trim();
+			if (!name) return { ok: false, reason: "invalid-name" };
+			session.taskName = name;
+		}
+
+		if (updates.description !== undefined) {
+			session.description = updates.description.trim() || undefined;
+		}
+
+		if (updates.startTime !== undefined) {
+			if (!session.logs.length) return { ok: false, reason: "no-logs" };
+			const firstLog = session.logs[0];
+			if (firstLog.end !== undefined && updates.startTime >= firstLog.end) {
+				return { ok: false, reason: "after-end" };
+			}
+			if (session.status === "running" && updates.startTime > Date.now()) {
+				return { ok: false, reason: "in-future" };
+			}
+			firstLog.start = updates.startTime;
+			session.startedAt = updates.startTime;
+		}
+
+		await this.persist();
+		return { ok: true };
+	}
+
 	private async persist(): Promise<void> {
 		await this.app.vault.adapter.write(this.trackerFile, JSON.stringify(this.sessions, null, 2));
 	}
@@ -102,13 +143,14 @@ export class TimeTrackerManager {
 
 		await this.scheduleManager.add({
 			id: `timer-${session.id}`,
+			kind: "tracker",
 			date: this.toISO(endDate),
 			title: session.taskName,
 			startTime: this.formatTime(startDate),
 			endTime: this.formatTime(endDate),
 			durationMs,
 			logs: session.logs.map((log) => ({ start: log.start, end: log.end })),
-			description: "Logged from timer",
+			description: session.description ?? "Logged from timer",
 		});
 	}
 

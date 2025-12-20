@@ -11,6 +11,7 @@ interface StartTimerModalProps {
  */
 export class StartTimerModal extends Modal {
 	private taskName = "";
+	private description = "";
 
 	constructor(app: App, private manager: TimeTrackerManager, private props: StartTimerModalProps) {
 		super(app);
@@ -22,6 +23,7 @@ export class StartTimerModal extends Modal {
 		contentEl.createEl("h2", { text: "What are you working on?" });
 
 		new Setting(contentEl)
+			.setName("Task")
 			.addText((text) =>
 				text
 					.setPlaceholder("Task name")
@@ -29,11 +31,20 @@ export class StartTimerModal extends Modal {
 			)
 			.setDesc("Timers are saved to the vault and can be resumed.");
 
+		new Setting(contentEl)
+			.setName("Description")
+			.setDesc("Optional details")
+			.addTextArea((text) =>
+				text
+					.setPlaceholder("Add context...")
+					.onChange((value) => (this.description = value.trim()))
+			);
+
 		const footer = contentEl.createDiv({ cls: "start-timer-footer" });
 		const startBtn = footer.createEl("button", { text: "Start" });
 		startBtn.onclick = async () => {
 			if (!this.taskName) return;
-			const session = await this.manager.start(this.taskName);
+			const session = await this.manager.start(this.taskName, this.description || undefined);
 			this.props.onStart(session);
 			this.close();
 		};

@@ -1,10 +1,11 @@
 import { App, Modal, Notice, Setting } from "obsidian";
-import { ScheduleEntry, TimerLog } from "./types";
+import { ScheduleEntry, ScheduleEntryKind, TimerLog } from "./types";
 import { ScheduleManager } from "./ScheduleManager";
 
 interface AddScheduleModalProps {
 	date: string;
 	initial?: ScheduleEntry;
+	kind: ScheduleEntryKind;
 	onSubmit: (entry: ScheduleEntry) => void;
 	onDelete?: (id: string) => void;
 }
@@ -22,11 +23,13 @@ export class AddScheduleModal extends Modal {
 	private startValue = "";
 	private endValue = "";
 	private descriptionValue = "";
+	private entryKind: ScheduleEntryKind;
 	private logInputs: LogInput[] = [];
 	private logListEl?: HTMLElement;
 
 	constructor(app: App, private manager: ScheduleManager, private props: AddScheduleModalProps) {
 		super(app);
+		this.entryKind = props.initial?.kind ?? props.kind;
 		if (props.initial) {
 			this.titleValue = props.initial.title;
 			this.startValue = props.initial.startTime ?? "";
@@ -112,6 +115,7 @@ export class AddScheduleModal extends Modal {
 		if (parsedLogs === null) return;
 
 		const entry: Omit<ScheduleEntry, "id"> = {
+			kind: this.entryKind,
 			title: this.titleValue,
 			date: this.props.date,
 			startTime: this.startValue || undefined,

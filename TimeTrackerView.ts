@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { showConfirm } from "./confirm";
+import { EditStartTimeModal } from "./EditStartTimeModal";
 import { TimeTrackerManager } from "./TimeTrackerManager";
 import { TimerSession } from "./types";
 
@@ -76,6 +77,13 @@ export class TimeTrackerView extends ItemView {
 			const logs = row.createDiv({ cls: "timer-session-logs", text: this.formatLogs(session) });
 
 			const actions = row.createDiv({ cls: "timer-session-actions" });
+			this.createActionButton(actions, "edit-3", "Edit timer", () => {
+				const modal = new EditStartTimeModal(this.app, this.manager, {
+					session,
+					onSave: async () => this.render(),
+				});
+				modal.open();
+			});
 			if (session.status === "running") {
 				this.createActionButton(actions, "pause-circle", "Pause", async () => {
 					await this.manager.pause(session.id);

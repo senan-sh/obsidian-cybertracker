@@ -4,6 +4,7 @@ import { PluginSettings } from "./types";
 export const DEFAULT_SETTINGS: PluginSettings = {
 	defaultView: "month",
 	startOfWeek: "monday",
+	defaultEntryKind: "tracker",
 };
 
 interface SettingsHost {
@@ -49,6 +50,20 @@ export class TimeTrackerSettingTab extends PluginSettingTab {
 					.setValue(this.host.settings.startOfWeek)
 					.onChange(async (value) => {
 						this.host.settings.startOfWeek = value as PluginSettings["startOfWeek"];
+						await this.host.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Default calendar mode")
+			.setDesc("Sets which entries are shown when the calendar opens.")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("tracker", "Tracker")
+					.addOption("planner", "Planner")
+					.setValue(this.host.settings.defaultEntryKind)
+					.onChange(async (value) => {
+						this.host.settings.defaultEntryKind = value as PluginSettings["defaultEntryKind"];
 						await this.host.saveSettings();
 					})
 			);

@@ -1,12 +1,13 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { AddScheduleModal } from "./AddScheduleModal";
 import { ScheduleManager } from "./ScheduleManager";
-import { CalendarViewMode, PluginSettings, ScheduleEntry } from "./types";
+import { CalendarViewMode, PluginSettings, ScheduleEntry, ScheduleEntryKind } from "./types";
 
 export const VIEW_TYPE_CALENDAR = "schedule-calendar-view";
 
 interface CalendarHost {
 	getSettings: () => PluginSettings;
+	saveSettings: () => Promise<void>;
 	openStartTimerModal: () => void;
 }
 
@@ -15,6 +16,7 @@ interface CalendarHost {
  */
 export class CalendarView extends ItemView {
 	private mode: CalendarViewMode;
+	private entryKind: ScheduleEntryKind;
 	private referenceDate: Date = new Date();
 
 	constructor(
@@ -24,6 +26,7 @@ export class CalendarView extends ItemView {
 	) {
 		super(leaf);
 		this.mode = host.getSettings().defaultView;
+		this.entryKind = host.getSettings().defaultEntryKind ?? "tracker";
 	}
 
 	getViewType(): string {
@@ -72,6 +75,24 @@ export class CalendarView extends ItemView {
 			this.mode = modeToggle.value as CalendarViewMode;
 			this.render();
 		};
+
+		const entryToggle = controls.createDiv({ cls: "calendar-entry-toggle" });
+		const trackerBtn = entryToggle.createEl("button", { text: "Tracker" });
+		const plannerBtn = entryToggle.createEl("button", { text: "Planner" });
+		const applyEntryState = () => {
+			const isTracker = this.entryKind === "tracker";
+			trackerBtn.classList.toggle("is-active", isTracker);
+			plannerBtn.classList.toggle("is-active", !isTracker);
+			trackerBtn.setAttribute("aria-pressed", String(isTracker));
+			plannerBtn.setAttribute("aria-pressed", String(!isTracker));
+		};
+		trackerBtn.onclick = () => {
+			void this.setEntryKind("tracker");
+		};
+		plannerBtn.onclick = () => {
+			void this.setEntryKind("planner");
+		};
+		applyEntryState();
 
 		const trackBtn = controls.createEl("button", { text: "Track time" });
 		trackBtn.onclick = () => this.host.openStartTimerModal();
@@ -124,7 +145,7 @@ export class CalendarView extends ItemView {
 			const addBtn = header.createEl("button", { text: "+" });
 			addBtn.onclick = () => this.openScheduleModal(iso);
 
-			const items = this.scheduleManager.getByDate(iso);
+			const items = this.scheduleManager.getByDate(iso, this.entryKind);
 			const list = cell.createDiv({ cls: "calendar-cell-list" });
 			items.forEach((item) => {
 				const el = list.createDiv({
@@ -152,7 +173,7 @@ export class CalendarView extends ItemView {
 			const addBtn = header.createEl("button", { text: "+" });
 			addBtn.onclick = () => this.openScheduleModal(iso);
 
-			const items = this.scheduleManager.getByDate(iso).sort((a, b) => (a.startTime ?? "") > (b.startTime ?? "") ? 1 : -1);
+			const items = this.scheduleManager.getByDate(iso, this.entryKind).sort((a, b) => (a.startTime ?? "") > (b.startTime ?? "") ? 1 : -1);
 			const timeline = column.createDiv({ cls: "calendar-week-timeline" });
 			items.forEach((item) => {
 				const block = timeline.createDiv({ cls: "calendar-week-item" });
@@ -216,6 +237,11 @@ export class CalendarView extends ItemView {
 
 	private getTooltipText(item: ScheduleEntry): string {
 		const duration = this.getDurationLabel(item);
+		const kind = this.getEntryKind(item);
+		if (kind === "planner") {
+			const durationLabel = duration ? `Planned duration: ${duration}` : "Planned item";
+			return `${item.title}\n${durationLabel}`;
+		}
 		const durationLabel = duration ? `Time tracked: ${duration}` : "No time logged";
 		return `${item.title}\n${durationLabel}`;
 	}
@@ -274,10 +300,26 @@ export class CalendarView extends ItemView {
 		return h * 3600 + m * 60 + sec;
 	}
 
+	private getEntryKind(item: ScheduleEntry): ScheduleEntryKind {
+		return item.kind === "planner" ? "planner" : "tracker";
+	}
+
+	private async setEntryKind(kind: ScheduleEntryKind) {
+		if (this.entryKind === kind) return;
+		this.entryKind = kind;
+		const settings = this.host.getSettings();
+		if (settings.defaultEntryKind !== kind) {
+			settings.defaultEntryKind = kind;
+			await this.host.saveSettings();
+		}
+		await this.render();
+	}
+
 	private openScheduleModal(date: string, existing?: ScheduleEntry) {
 		const modal = new AddScheduleModal(this.app, this.scheduleManager, {
 			date,
 			initial: existing,
+			kind: this.entryKind,
 			onSubmit: () => this.render(),
 			onDelete: () => this.render(),
 		});

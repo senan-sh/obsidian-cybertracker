@@ -1,5 +1,5 @@
 import { App, EventRef, Events, normalizePath } from "obsidian";
-import { ScheduleEntry } from "./types";
+import { ScheduleEntry, ScheduleEntryKind } from "./types";
 
 /**
  * Handles reading and writing scheduled items to per-month JSON files in the vault config folder.
@@ -26,9 +26,11 @@ export class ScheduleManager {
 		return Array.from(this.schedulesByMonth.values()).flat();
 	}
 
-	getByDate(date: string): ScheduleEntry[] {
+	getByDate(date: string, kind?: ScheduleEntryKind): ScheduleEntry[] {
 		const month = this.monthFromDate(date);
-		return (this.schedulesByMonth.get(month) ?? []).filter((item) => item.date === date);
+		const entries = (this.schedulesByMonth.get(month) ?? []).filter((item) => item.date === date);
+		if (!kind) return entries;
+		return entries.filter((item) => this.getEntryKind(item) === kind);
 	}
 
 	async add(entry: Omit<ScheduleEntry, "id"> & { id?: string }): Promise<ScheduleEntry> {
@@ -44,7 +46,7 @@ export class ScheduleManager {
 
 		const monthEntries = this.schedulesByMonth.get(month) ?? [];
 		const filtered = monthEntries.filter((item) => item.id !== id);
-		const newEntry: ScheduleEntry = { ...entry, id };
+		const newEntry = this.normalizeEntry({ ...entry, id });
 		const computedDuration = this.calculateDurationMs(newEntry);
 		if (computedDuration !== undefined) {
 			newEntry.durationMs = computedDuration;
@@ -93,8 +95,9 @@ export class ScheduleManager {
 			const raw = await this.app.vault.adapter.read(path);
 			const parsed = this.parseScheduleArray(raw);
 			const normalized = parsed.map((entry) => {
-				const durationMs = this.calculateDurationMs(entry);
-				return durationMs !== undefined ? { ...entry, durationMs } : entry;
+				const normalizedEntry = this.normalizeEntry(entry);
+				const durationMs = this.calculateDurationMs(normalizedEntry);
+				return durationMs !== undefined ? { ...normalizedEntry, durationMs } : normalizedEntry;
 			});
 			this.schedulesByMonth.set(monthKey, normalized);
 			normalized.forEach((entry) => this.idToMonth.set(entry.id, monthKey));
@@ -158,13 +161,14 @@ export class ScheduleManager {
 			if (!parsed.length) return;
 			const grouped = new Map<string, ScheduleEntry[]>();
 			parsed.forEach((entry) => {
-				const month = this.monthFromDate(entry.date);
+				const normalizedEntry = this.normalizeEntry(entry);
+				const month = this.monthFromDate(normalizedEntry.date);
 				const current = grouped.get(month) ?? [];
-				const existingIdx = current.findIndex((e) => e.id === entry.id);
+				const existingIdx = current.findIndex((e) => e.id === normalizedEntry.id);
 				if (existingIdx >= 0) {
-					current[existingIdx] = entry;
+					current[existingIdx] = normalizedEntry;
 				} else {
-					current.push(entry);
+					current.push(normalizedEntry);
 				}
 				grouped.set(month, current);
 			});
@@ -206,6 +210,16 @@ export class ScheduleManager {
 		const fromTimes = this.durationFromTimes(entry.startTime, entry.endTime);
 		if (fromTimes !== null && fromTimes > 0) return fromTimes;
 		return typeof entry.durationMs === "number" && entry.durationMs > 0 ? entry.durationMs : undefined;
+	}
+
+	private getEntryKind(entry: ScheduleEntry): ScheduleEntryKind {
+		return entry.kind === "planner" ? "planner" : "tracker";
+	}
+
+	private normalizeEntry(entry: ScheduleEntry): ScheduleEntry {
+		const kind = this.getEntryKind(entry);
+		if (entry.kind === kind) return entry;
+		return { ...entry, kind };
 	}
 
 	private durationFromTimes(start?: string, end?: string): number | null {

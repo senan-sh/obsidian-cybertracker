@@ -25,6 +25,7 @@ export default class TimeTrackerPlugin extends Plugin {
 					leaf,
 					{
 						getSettings: () => this.settings,
+						saveSettings: () => this.saveSettings(),
 						openStartTimerModal: () => this.openStartTimerModal(),
 					},
 					this.scheduleManager

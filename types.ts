@@ -1,13 +1,16 @@
 export type CalendarViewMode = "month" | "week";
 export type StartOfWeek = "sunday" | "monday";
+export type ScheduleEntryKind = "tracker" | "planner";
 
 export interface PluginSettings {
 	defaultView: CalendarViewMode;
 	startOfWeek: StartOfWeek;
+	defaultEntryKind: ScheduleEntryKind;
 }
 
 export interface ScheduleEntry {
 	id: string;
+	kind?: ScheduleEntryKind;
 	date: string; // ISO date string YYYY-MM-DD
 	title: string;
 	description?: string;
@@ -22,6 +25,7 @@ export type TimerStatus = "running" | "paused" | "stopped";
 export interface TimerSession {
 	id: string;
 	taskName: string;
+	description?: string;
 	logs: TimerLog[];
 	status: TimerStatus;
 	startedAt?: number;
